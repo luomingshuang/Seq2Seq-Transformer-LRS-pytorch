@@ -33,13 +33,16 @@ def ColorNormalize(batch_img):
     return batch_img
 
 class AiShellDataset_pretrain(Dataset):
-    def __init__(self, args, split):
+    def __init__(self, args, split, kinds_path):
         self.args = args
         self.split = split
         self.samples = []
+        self.kinds_path = kinds_path
+
         length = 0
         duration_length = 0
-        with open('pretrain_six_word_samples.txt', 'r') as f:
+        for kind_path in kinds_path:
+          with open(kind_path, 'r') as f:
             lines = f.readlines()
             print('the number of samples: ', len(lines))
             #for key in dicts.keys():
@@ -120,7 +123,7 @@ if __name__ == "__main__":
     args = parse_args()
     #train_dataset = AiShellDataset(args, 'train')
 
-    train_dataset = AiShellDataset_pretrain(args, 'pretrain')
+    train_dataset = AiShellDataset_pretrain(args, 'pretrain', ['pretrain_1_word_samples.txt', 'pretrain_2_word_samples.txt', 'pretrain_3_word_samples.txt'])
     #print(train_dataset[0][0].size())
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=args.batch_size, pin_memory=True, shuffle=True, num_workers=args.num_workers)
     for i,data in enumerate(train_loader):

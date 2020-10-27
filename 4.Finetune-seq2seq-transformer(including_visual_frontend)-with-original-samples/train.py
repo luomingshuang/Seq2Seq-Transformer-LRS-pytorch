@@ -82,9 +82,9 @@ def train_net(args):
                           pe_maxlen=args.pe_maxlen)
 
         model = Transformer(encoder, decoder, visual_model)
-        '''
+
         ##loading Transformer seq2seq model
-        checkpoint = torch.load(checkpoint)
+        checkpoint = torch.load('BEST_checkpoint_seq2seq_TM.tar')
         print('loading transformer seq2seq model successful!')
         pre_model = checkpoint['model']
         pretrained_dict = pre_model.state_dict()
@@ -98,7 +98,7 @@ def train_net(args):
         model.load_state_dict(model_dict)
 
         ##loading visual_frontend model
-        checkpoint = torch.load('BEST_checkpoint_1_words.tar')
+        checkpoint = torch.load('BEST_checkpoint_pretrained_words.tar')
         print('loading transformer visual_frontend model successful!')
         pre_model = checkpoint['model']
         pretrained_dict = pre_model.state_dict()
@@ -110,7 +110,7 @@ def train_net(args):
         print('miss matched params:{}'.format(missed_params))
         model_dict.update(pretrained_dict)
         model.load_state_dict(model_dict)
-        '''
+
         checkpoint = torch.load(checkpoint)
         model = checkpoint['model']
         optimizer = TransformerOptimizer(torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.98), eps=1e-09))

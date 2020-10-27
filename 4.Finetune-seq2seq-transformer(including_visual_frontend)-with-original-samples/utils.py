@@ -41,7 +41,7 @@ def save_checkpoint(epoch, epochs_since_improvement, model, optimizer, loss, is_
     torch.save(state, filename)
     # If this checkpoint is the best so far, store a copy so it doesn't get overwritten by a worse checkpoint
     if is_best:
-        torch.save(state, 'BEST_checkpoint_{}_words.tar'.format(length_words))
+        torch.save(state, 'BEST_checkpoint_final_words.tar')
 
 
 

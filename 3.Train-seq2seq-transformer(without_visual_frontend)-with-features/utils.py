@@ -41,7 +41,7 @@ def save_checkpoint(epoch, epochs_since_improvement, model, optimizer, loss, is_
     torch.save(state, filename)
     # If this checkpoint is the best so far, store a copy so it doesn't get overwritten by a worse checkpoint
     if is_best:
-        torch.save(state, 'BEST_checkpoint_{}_words.tar'.format(length_words))
+        torch.save(state, 'BEST_checkpoint_seq2seq_TM.tar')
 
 
 
@@ -154,7 +154,7 @@ def parse_args():
 
     #parser.add_argument('--checkpoint', type=str, default=None, help='checkpoint')
 
-    parser.add_argument('--checkpoint', type=str, default='BEST_checkpoint_10_words.tar', help='checkpoint')
+    parser.add_argument('--checkpoint', type=str, default='BEST_checkpoint_pretrained_words.tar', help='checkpoint')
 
     args = parser.parse_args()
     
