@@ -83,6 +83,10 @@ cp -r Visual-frontend-pretrain-with-sub_sentences-samples/BEST_checkpoint_pretra
 Finetune-seq2seq-transformer(including_visual_frontend)-with-original-samples/
 cp -r Train-seq2seq-transformer(without_visual_frontend)-with-features/BEST_checkpoint_seq2seq_TM.tar
 Finetune-seq2seq-transformer(including_visual_frontend)-with-original-samples/
+python data_load.py
+#get LRS2.pickle
+python ngram_lm.py
+#get bigram_freq.pkl
 CUDA_VISIBLE_DEVICES='0,1,2,3' python train.py
 ```
 * TEST
@@ -105,6 +109,7 @@ beam size=3, WER=%
 beam size=4, WER=%
 beam size=5, WER=%
 ```
+In the future, I think maybe we should learn something (such as FST, L.fst and so on) from ASR for our lip-reading task.
 
 
  
