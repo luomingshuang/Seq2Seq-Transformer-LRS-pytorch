@@ -38,7 +38,7 @@ class Transformer(nn.Module):
         #print(pred.size(), max(pred.size(1)))
         return pred, gold
 
-    def recognize(self, padded_input):
+    def recognize(self, padded_input, char_list, args):
         """Sequence-to-Sequence beam search, decode one utterence now.
         Args:
             input: T x D
@@ -58,6 +58,6 @@ class Transformer(nn.Module):
         encoder_padded_outputs, *_ = self.encoder(padded_input, input_lengths)
         # pred is score before softmax
         #print(encoder_padded_outputs.size())
-        pred = self.decoder.recognize_beam(encoder_padded_outputs)
+        pred = self.decoder.recognize_beam(encoder_padded_outputs, char_list, args)
         #print(pred.size(), max(pred.size(1)))
         return pred

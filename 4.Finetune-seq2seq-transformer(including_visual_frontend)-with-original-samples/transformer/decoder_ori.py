@@ -9,10 +9,6 @@ from .attention import MultiHeadAttention
 from .module import PositionalEncoding, PositionwiseFeedForward
 from .utils import get_attn_key_pad_mask, get_attn_pad_mask, get_non_pad_mask, get_subsequent_mask, pad_list
 
-filename = 'bigram_freq.pkl'
-print('loading {}...'.format(filename))
-with open(filename, 'rb') as file:
-    bigram_freq = pickle.load(file)
 
 class Decoder(nn.Module):
     ''' A decoder model with self attention mechanism. '''
@@ -138,36 +134,24 @@ class Decoder(nn.Module):
             return pred, gold, dec_slf_attn_list, dec_enc_attn_list
         return pred, gold
 
-    def recognize_beam(self, encoder_outputs, char_list, args):
-        beam = args.beam_size
-        nbest = args.nbest
-        
+    def recognize_beam(self, encoder_outputs):
+        #print(encoder_outputs.size())
+        #maxlen = encoder_outputs.size(1)
         maxlen= 101
-
-        ys = torch.ones(encoder_outputs.size(0), 1).fill_(self.sos_id).type_as(encoder_outputs).long()
-       
-        # yseq: 1xT
-        hyp = {'score': 0.0, 'yseq': ys}
-        hyps = [hyp]
-        ended_hyps = []
-        final_result = []
-         
+        #print(maxlen)
+        # prepare sos
+        ys_l2r = torch.ones(encoder_outputs.size(0), 1).fill_(self.sos_id).type_as(encoder_outputs).long()
+        #ys_r2l = torch.ones(encoder_outputs.size(0), 1).fill_(self.sos_id).type_as(encoder_outputs).long()
+        #print(ys)
+        
         for i in range(maxlen):
-            hyps_best_kept = []
-            for hyp in hyps:
-                ys = hyp['yseq']  # 1 x i
-                last_id = ys.cpu().numpy()[0][-1]
-                freq = bigram_freq[last_id]
-                freq = torch.log(torch.from_numpy(freq))
-                freq = freq.type(torch.float).cuda()
                 #last_id = ys.cpu().numpy()[0][-1]
-                
                 # -- Prepare masks
-                non_pad_mask_l2r = torch.ones_like(ys).float().unsqueeze(-1)  # 1xix1
-                slf_attn_mask_l2r = get_subsequent_mask(ys)
+                non_pad_mask_l2r = torch.ones_like(ys_l2r).float().unsqueeze(-1)  # 1xix1
+                slf_attn_mask_l2r = get_subsequent_mask(ys_l2r)
                 
-                dec_output_l2r = self.dropout(self.tgt_word_emb(ys) * self.x_logit_scale +
-                                  self.positional_encoding(ys))
+                dec_output_l2r = self.dropout(self.tgt_word_emb(ys_l2r) * self.x_logit_scale +
+                                  self.positional_encoding(ys_l2r))
                 
                 for n in range(self.n_layers):
                     dec_output_l2r, dec_slf_attn, dec_enc_attn = self.layer_stack[n](
@@ -177,68 +161,15 @@ class Decoder(nn.Module):
                               #slf_attn_mask=None,
                               dec_enc_attn_mask=None)
                               
-                seq_logit = self.tgt_word_prj(dec_output_l2r[:,-1])
+                pred_l2r = self.tgt_word_prj(dec_output_l2r[:,-1])
                 
-                local_scores = F.log_softmax(seq_logit, dim=1)
-               
-                local_scores += freq
+                pred_argmax_l2r = pred_l2r.argmax(-1)
                 
-                # topk scores
-                local_best_scores, local_best_ids = torch.topk(
-                    local_scores, beam, dim=1)
-                
-                for j in range(beam):
-                    new_hyp = {}
-                    new_hyp['score'] = hyp['score'] + local_best_scores[0, j]
-                    new_hyp['yseq'] = torch.ones(1, (1 + ys.size(1))).type_as(encoder_outputs).long()
-                    new_hyp['yseq'][:, :ys.size(1)] = hyp['yseq']
-                    new_hyp['yseq'][:, ys.size(1)] = int(local_best_ids[0, j])
-                    # will be (2 x beam) hyps at most
-                    hyps_best_kept.append(new_hyp)
-
-                hyps_best_kept = sorted(hyps_best_kept,
-                                        key=lambda x: x['score'],
-                                        reverse=True)[:beam]
-            # end for hyp in hyps
-            hyps = hyps_best_kept
-
-            # add eos in the final loop to avoid that there are no ended hyps
-            if i == maxlen - 1:
-                for hyp in hyps:
-                    hyp['yseq'] = torch.cat([hyp['yseq'],
-                                             torch.ones(1, 1).fill_(self.eos_id).type_as(encoder_outputs).long()],
-                                            dim=1)
-            #print('the hyps result: ', hyps)
-            remained_hyps = []
-            
-            for hyp in hyps:
-                #if hyp['yseq'][0, -1] == self.eos_id:
-                
-                #print(hyp['yseq'])
-                #print(hyp['yseq'][0,-1])
-                if hyp['yseq'][0,-1] == self.eos_id:
-                    ended_hyps.append(hyp)
-                elif len(hyp['yseq'][0]) == 101:
-                    ended_hyps.append(hyp)
-                else:
-                    remained_hyps.append(hyp)
-                
-                #ended_hyps.append(hyp)
-            hyps = remained_hyps
-        
-        #print('the ended_hyps result: ', ended_hyps)  
-        # end for i in range(maxlen)
-        ended_hyps = list(filter(lambda x: len(x['yseq'][0])>=4, ended_hyps))
-        #print('the filter ended_hyps result: ', ended_hyps)
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x['score'], reverse=True)[
-                     :min(len(ended_hyps), nbest)]
-        #print('the nbest_hyps result: ', nbest_hyps)      
-        # compitable with LAS implementation
-        for hyp in nbest_hyps:
-            hyp['yseq'] = hyp['yseq'][0].cpu().numpy().tolist()
-        return nbest_hyps
+                pred_argmax_l2r = pred_argmax_l2r.unsqueeze(-1)
+    
+                ys_l2r = torch.cat((ys_l2r, pred_argmax_l2r), 1)
            
-        return ys
+        return ys_l2r
 
 
 class DecoderLayer(nn.Module):

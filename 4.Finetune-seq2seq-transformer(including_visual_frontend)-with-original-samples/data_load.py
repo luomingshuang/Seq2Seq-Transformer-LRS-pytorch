@@ -12,6 +12,8 @@ from torch.utils.data import Dataset
 
 import options as opt
 
+from options import pickle_file
+
 char_list = ['sos', 'eos', ' ', '!', "'", ',', '-', '.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', '?', 'A', 'B', 'C', 'D', 
 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '^']
 
@@ -52,6 +54,8 @@ char_list = ['sos', 'eos', ' ', '!', "'", ',', '-', '.', '0', '1', '2', '3', '4'
 class Mydataset(Dataset):
     def __init__(self, path):
         self.path = path
+        data = dict()
+        self.trns = []
         self.samples = []
         self.max_characters_length = []
         for path in self.path:
@@ -60,8 +64,13 @@ class Mydataset(Dataset):
             lines = [line.rstrip('\n') for line in lines]
             for line in lines:
                 items = line.strip().split(' ')
+                trn = [char_list.index(c) for c in list(items[2].replace('/', ' '))]
+                self.trns.append({'trn':trn})
                 self.samples.append(items)
-
+        data['train'] = self.trns
+        with open(pickle_file, 'wb') as file:
+            pickle.dump(data, file)
+            
         self.samples = list(filter(lambda x: int(x[3]) <= opt.length_words, self.samples))
         print('the number of data for training: ', len(self.samples))
 

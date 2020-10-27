@@ -19,3 +19,5 @@ frontend = False
 print_freq = 1
 
 IGNORE_ID = -1
+
+pickle_file = "LRS2.pickle"
